@@ -1,0 +1,28 @@
+name: VM2 Branch Provenance 0930
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: write
+jobs:
+  trigger:
+    name: vm2-branchprov-victim
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail first attempt only
+        shell: bash
+        run: |
+          echo "VM2_BRANCHPROV_HEAD=${{ github.event.pull_request.head.label }}"
+          echo "VM2_BRANCHPROV_ATTEMPT=$GITHUB_RUN_ATTEMPT"
+          if [ "$GITHUB_RUN_ATTEMPT" = "1" ]; then exit 1; fi
+  write_side_effect:
+    name: vm2-branchprov-write-side-effect
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish controlled release marker
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          tag="vm2-branchprov-${GITHUB_RUN_ID}-attempt-${GITHUB_RUN_ATTEMPT}"
+          gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "$tag" --notes "Controlled VM2 Auto-Retry branch provenance marker"
